@@ -1,6 +1,7 @@
 import axios from "axios";
 import { create } from "zustand";
 import { API_ENDPOINTS } from "../config/api";
+import * as DocumentPicker from "expo-document-picker";
 
 export interface UploadedFile {
   id: string;
@@ -10,10 +11,16 @@ export interface UploadedFile {
   uploadDate: string;
   snippet?: string;
   extractedText?: string;
+  fileType: "pdf" | "video" | "unknown";
 }
 
 interface FilesStore {
   files: UploadedFile[];
+  uploadVideoFile: (
+    file: DocumentPicker.DocumentPickerAsset,
+    title?: string,
+    onProgress?: (progress: { loaded: number; total: number }) => void
+  ) => Promise<any>;
   loading: boolean;
   error: string | null;
   fetchFiles: () => Promise<void>;
@@ -78,7 +85,6 @@ export const useFilesStore = create<FilesStore>((set, get) => ({
       set({ loading: false });
       return response.data.file;
     } catch (error: any) {
-      // Handle potential errors from axios
       const errorMessage =
         error.response?.data?.message || error.message || "Upload failed";
       set({ error: errorMessage, loading: false });
@@ -109,7 +115,7 @@ export const useFilesStore = create<FilesStore>((set, get) => ({
         method: "DELETE",
       });
       if (!response.ok) throw new Error("Delete failed");
-      await get().fetchFiles(); // Refresh file list
+      await get().fetchFiles();
       set({ loading: false });
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
@@ -128,6 +134,49 @@ export const useFilesStore = create<FilesStore>((set, get) => ({
     } catch (error) {
       set({ error: (error as Error).message, loading: false });
       throw error;
+    }
+  },
+
+  uploadVideoFile: async (
+    file: DocumentPicker.DocumentPickerAsset,
+    title?: string,
+    onProgress?: (progress: { loaded: number; total: number }) => void
+  ) => {
+    const formData = new FormData();
+    formData.append("file", {
+      uri: file.uri,
+      name: file.name,
+      type: file.mimeType,
+    } as any);
+
+    if (title) {
+      formData.append("title", title);
+    }
+
+    try {
+      const response = await axios.post(API_ENDPOINTS.videoUpload, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: (progressEvent) => {
+          if (onProgress && progressEvent.total) {
+            onProgress({
+              loaded: progressEvent.loaded,
+              total: progressEvent.total,
+            });
+          }
+        },
+      });
+
+      set((state) => ({
+        files: [response.data.file, ...state.files],
+      }));
+      return response.data.file;
+    } catch (error: any) {
+      console.error("Video upload error:", error.response?.data);
+      throw new Error(
+        error.response?.data?.message || "Failed to upload video"
+      );
     }
   },
 }));

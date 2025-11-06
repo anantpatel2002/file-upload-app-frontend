@@ -1,3 +1,4 @@
+// app/(tabs)/uploadVideo.tsx (NEW FILE)
 import { Ionicons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { useRouter } from "expo-router";
@@ -10,11 +11,13 @@ import {
   View,
 } from "react-native";
 import { Text, TextInput } from "react-native-paper";
+// IMPORTANT: You will need to add 'uploadVideoFile' to your store
 import { useFilesStore } from "../../store/filesStore";
 
-export default function UploadScreen() {
+export default function UploadVideoScreen() {
   const router = useRouter();
-  const { uploadFile } = useFilesStore();
+  // We will create this 'uploadVideoFile' function in the next step
+  const { uploadVideoFile } = useFilesStore();
 
   const [selectedFile, setSelectedFile] =
     useState<DocumentPicker.DocumentPickerAsset | null>(null);
@@ -28,14 +31,13 @@ export default function UploadScreen() {
   const pickDocument = async (): Promise<void> => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: "application/pdf",
+        type: "video/mp4", // <-- CHANGED
         copyToCacheDirectory: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setSelectedFile(result.assets[0]);
-        // Reset all progress-related state
-        clearFile(false); // `false` to keep the selected file
+        clearFile(false);
       }
     } catch (err) {
       Alert.alert("Error", "Failed to pick document");
@@ -55,31 +57,21 @@ export default function UploadScreen() {
 
     const onProgress = (progress: { loaded: number; total: number }) => {
       const { loaded, total } = progress;
-      console.log("loaded ", loaded);
-      console.log("total ", total);
-
       const effectiveLoaded = Math.min(loaded, total);
-
-      //Update Progress Bar
       const percentComplete =
         total > 0
           ? Math.min(100, Math.round((effectiveLoaded / progress.total) * 100))
           : 0;
-
       setUploadProgress(percentComplete);
 
       const currentTime = Date.now();
       const elapsedSeconds = (currentTime - startTime) / 1000;
 
       if (elapsedSeconds > 0.1) {
-        //Calculate Real-time Speed (Bandwidth)
         const bytesPerSecond = effectiveLoaded / elapsedSeconds;
-
         if (bytesPerSecond > 0) {
           const speedMbps = ((bytesPerSecond * 8) / (1024 * 1024)).toFixed(2);
           setBandwidth(speedMbps);
-
-          //Calculate Estimated Time Remaining
           const remainingBytes = total - effectiveLoaded;
           const remainingSeconds = remainingBytes / bytesPerSecond;
           setEstimatedTime(remainingSeconds);
@@ -88,13 +80,14 @@ export default function UploadScreen() {
     };
 
     try {
-      await uploadFile(
+      // Use the new store function
+      await uploadVideoFile(
+        // <-- CHANGED
         selectedFile,
-        title.trim() ? title.trim() + ".pdf" : undefined,
+        title.trim() ? title.trim() + ".mp4" : undefined, // <-- CHANGED
         onProgress
       );
 
-      // Finalize UI state on success
       setUploadProgress(100);
       setUploading(false);
       setUploadComplete(true);
@@ -109,7 +102,6 @@ export default function UploadScreen() {
         setBandwidth(avgSpeedMbps);
       }
 
-      // Navigate to search screen after a short delay
       setTimeout(() => {
         clearFile();
         router.push("/search");
@@ -150,7 +142,6 @@ export default function UploadScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Real-time Bandwidth Indicator */}
       {bandwidth && uploading && (
         <View style={styles.bandwidthContainer}>
           <Ionicons name="wifi" size={16} color="#16a34a" />
@@ -184,7 +175,7 @@ export default function UploadScreen() {
                 />
               </View>
               <Text style={styles.uploadTitle}>
-                {selectedFile ? "File Selected" : "Choose a PDF file"}
+                {selectedFile ? "File Selected" : "Choose an MP4 file"}
               </Text>
               <Text style={styles.uploadSubtitle}>
                 {selectedFile ? "Ready to upload" : "Tap to browse files"}
@@ -194,13 +185,18 @@ export default function UploadScreen() {
             {selectedFile && (
               <View style={styles.filePreview}>
                 <View style={styles.filePreviewContent}>
-                  <View style={styles.fileIconContainer}>
-                    <Ionicons name="document-text" size={24} color="#fff" />
+                  <View
+                    style={[
+                      styles.fileIconContainer,
+                      { backgroundColor: "#3b82f6" },
+                    ]}
+                  >
+                    <Ionicons name="videocam" size={24} color="#fff" />
                   </View>
                   <View style={styles.fileInfo}>
                     <Text style={styles.fileName} numberOfLines={1}>
                       {title.trim().length > 0
-                        ? title.trim() + ".pdf"
+                        ? title.trim() + ".mp4"
                         : selectedFile.name}
                     </Text>
                     <Text style={styles.fileSize}>
@@ -231,7 +227,6 @@ export default function UploadScreen() {
                   )}
                 </View>
 
-                {/* Progress Bar */}
                 {(uploading || uploadComplete) && (
                   <View style={styles.progressContainer}>
                     <View style={styles.progressHeader}>
@@ -257,8 +252,6 @@ export default function UploadScreen() {
                     </View>
                   </View>
                 )}
-
-                {/* Success Message */}
                 {uploadComplete && (
                   <View style={styles.successContainer}>
                     <Ionicons
@@ -272,7 +265,6 @@ export default function UploadScreen() {
                   </View>
                 )}
 
-                {/* Title Input - Hidden during/after upload */}
                 {!uploading && !uploadComplete && (
                   <TextInput
                     label={"Rename File Title (Optional)"}
@@ -285,37 +277,23 @@ export default function UploadScreen() {
                         : selectedFile.name.length
                     )}
                     style={styles.fileTitleInput}
-                    right={<TextInput.Affix text=".pdf" />}
+                    right={<TextInput.Affix text=".mp4" />}
                     mode="outlined"
                   />
                 )}
               </View>
             )}
 
-            {/* Action Buttons */}
             {selectedFile && !uploading && !uploadComplete && (
               <TouchableOpacity
                 style={styles.uploadButton}
                 onPress={handleUpload}
               >
-                <Text style={styles.uploadButtonText}>Upload PDF</Text>
-              </TouchableOpacity>
-            )}
-
-            {uploadComplete && (
-              <TouchableOpacity
-                style={styles.searchButton}
-                onPress={() => {
-                  clearFile();
-                  router.push("/search");
-                }}
-              >
-                <Text style={styles.searchButtonText}>Go to Search</Text>
+                <Text style={styles.uploadButtonText}>Upload Video</Text>
               </TouchableOpacity>
             )}
           </View>
 
-          {/* Info Cards */}
           <View style={styles.infoCards}>
             <View style={styles.infoCard}>
               <View
@@ -332,7 +310,7 @@ export default function UploadScreen() {
               </View>
               <View>
                 <Text style={styles.infoLabel}>Supported</Text>
-                <Text style={styles.infoValue}>PDF Only</Text>
+                <Text style={styles.infoValue}>MP4 Only</Text>
               </View>
             </View>
             <View style={styles.infoCard}>
@@ -350,7 +328,7 @@ export default function UploadScreen() {
               </View>
               <View>
                 <Text style={styles.infoLabel}>Max Size</Text>
-                <Text style={styles.infoValue}>100 MB</Text>
+                <Text style={styles.infoValue}>500 MB</Text>
               </View>
             </View>
             <View style={styles.infoCard}>
@@ -368,7 +346,7 @@ export default function UploadScreen() {
               </View>
               <View>
                 <Text style={styles.infoLabel}>Feature</Text>
-                <Text style={styles.infoValue}>Full-text Search</Text>
+                <Text style={styles.infoValue}>Title Search</Text>
               </View>
             </View>
           </View>

@@ -2,14 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-    ActivityIndicator,
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { useFilesStore } from "../../store/filesStore";
 
@@ -121,8 +121,20 @@ export default function SearchScreen() {
             <View style={styles.resultsContainer}>
               {(searchQuery ? searchResults : files).map((file) => (
                 <View key={file.id} style={styles.resultCard}>
-                  <View style={styles.resultIconContainer}>
-                    <Ionicons name="document" size={24} color="#fff" />
+                  <View
+                    style={[
+                      styles.resultIconContainer,
+                      {
+                        backgroundColor:
+                          file.fileType === "video" ? "#3b82f6" : "#ef4444",
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={file.fileType === "video" ? "videocam" : "document"}
+                      size={24}
+                      color="#fff"
+                    />
                   </View>
                   <View style={styles.resultInfo}>
                     <Text style={styles.resultName} numberOfLines={1}>
@@ -158,9 +170,23 @@ export default function SearchScreen() {
                         </Text>
                       )}
                   </View>
-                  <TouchableOpacity style={styles.viewButton}>
-                    <Text style={styles.viewButtonText}>View</Text>
-                  </TouchableOpacity>
+
+                  <View style={styles.actionButtons}>
+                    <TouchableOpacity style={styles.viewButton}>
+                      <Text style={styles.viewButtonText}>View</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => handleDelete(file.id)}
+                    >
+                      <Ionicons
+                        name="trash-outline"
+                        size={20}
+                        color="#ef4444"
+                      />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
 
