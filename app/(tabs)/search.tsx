@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useFilesStore } from "../../store/filesStore";
+import { UploadedFile, useFilesStore } from "../../store/filesStore";
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -66,6 +66,20 @@ export default function SearchScreen() {
         },
       },
     ]);
+  };
+
+  const handleView = (file: UploadedFile) => {
+    if (file.fileType === "pdf") {
+      router.push({
+        pathname: "/(modals)/pdf-viewer",
+        params: { fileId: file.id },
+      });
+    } else if (file.fileType === "video") {
+      // We can implement this next!
+      Alert.alert("Video Player", "Video playback is coming soon!");
+    } else {
+      Alert.alert("Error", "Cannot view this file type.");
+    }
   };
 
   const formatFileSize = (bytes: number): string => {
@@ -172,7 +186,10 @@ export default function SearchScreen() {
                   </View>
 
                   <View style={styles.actionButtons}>
-                    <TouchableOpacity style={styles.viewButton}>
+                    <TouchableOpacity
+                      style={styles.viewButton}
+                      onPress={() => handleView(file)} 
+                    >
                       <Text style={styles.viewButtonText}>View</Text>
                     </TouchableOpacity>
 

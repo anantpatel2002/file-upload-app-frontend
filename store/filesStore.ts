@@ -1,7 +1,7 @@
 import axios from "axios";
+import * as DocumentPicker from "expo-document-picker";
 import { create } from "zustand";
 import { API_ENDPOINTS } from "../config/api";
-import * as DocumentPicker from "expo-document-picker";
 
 export interface UploadedFile {
   id: string;
@@ -11,6 +11,7 @@ export interface UploadedFile {
   uploadDate: string;
   snippet?: string;
   extractedText?: string;
+  filename?: string;
   fileType: "pdf" | "video" | "unknown";
 }
 
